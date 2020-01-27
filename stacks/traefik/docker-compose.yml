@@ -1,0 +1,26 @@
+version: "3.2"
+
+services:
+  traefik:
+    image: pistacks/traefik:1.7.16
+    ports:
+      - 80:80
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      --docker
+      --docker.swarmmode
+      --docker.watch
+      --logLevel=DEBUG
+      --accessLog
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
