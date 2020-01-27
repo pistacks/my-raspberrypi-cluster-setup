@@ -1,0 +1,24 @@
+version: "3.2"
+
+services:
+  piblog:
+    image: alexellis2/ghost-on-docker:armv6
+    networks:
+      - traefik
+    volumes:
+      - /mnt/volumes/ghost/content/data:/var/www/ghost/content/data
+    ports:
+      - 2368:2368
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.backend=piblog
+        - traefik.port=2368
+        - traefik.frontend.rule=Host:blog.${DOMAIN:-localhost}
+        - traefik.docker.network=traefik
+      placement:
+        constraints: [node.role == manager]
+
+networks:
+  traefik:
+    external: true
