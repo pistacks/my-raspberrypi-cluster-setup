@@ -1,6 +1,35 @@
 version: "3.7"
 
 services:
+  cadvisor:
+    image: pistacks/cadvisor:0.34.0
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 128M
+      labels:
+        - traefik.port=8080
+        - traefik.backend=cadvisor
+        - traefik.frontend.rule=Host:cadvisor.${DOMAIN:-localhost}
+        - traefik.docker.network=traefik
+    networks:
+      - traefik
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        
   prometheus:
     image: prom/prometheus:v2.15.0
     ports:
