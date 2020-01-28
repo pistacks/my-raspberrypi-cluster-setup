@@ -1,0 +1,52 @@
+version: "3.7"
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.15.0
+    ports:
+      - 9090:9090
+    configs:
+      - source: prometheus_config.v1
+        target: /etc/prometheus/prometheus.yml
+      - source: prometheus_rules.v1
+        target: /etc/prometheus/alert.rules
+    volumes:
+      - vol_prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention=10d"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.external-url=https://prometheus.${DOMAIN:-localhost}"
+    deploy:
+      labels:
+        - traefik.port=9090
+        - traefik.backend=prometheus
+        - traefik.frontend.rule=Host:prometheus.${DOMAIN:-localhost}
+        - traefik.docker.network=traefik
+    networks:
+      - traefik
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  traefik:
+    external: true
+
+configs:
+  prometheus_config.v1:
+    file: ./configs/prometheus/prometheus.yml
+  prometheus_rules.v1:
+    file: ./configs/prometheus/alert.rules
+
+volumes:
+  vol_prometheus_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER_IP:-localhost},nolock,soft,rw
+      device: ":/opt/nfs/volumes/prometheus"
