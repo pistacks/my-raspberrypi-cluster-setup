@@ -29,7 +29,36 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-        
+
+  node-exporter:
+    image: pistacks/node-exporter:0.18.1
+    environment:
+      - NODE_ID={{.Node.ID}}
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /etc/hostname:/etc/nodename
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.textfile.directory=/etc/node-exporter/'
+      - '--collector.filesystem.ignored-mount-points'
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+      - '--no-collector.ipvs'
+    networks:
+      - monitoring
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 64M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   prometheus:
     image: prom/prometheus:v2.15.0
     ports:
@@ -56,6 +85,7 @@ services:
         - traefik.docker.network=traefik
     networks:
       - traefik
+      - monitoring
     logging:
       driver: json-file
       options:
@@ -65,7 +95,9 @@ services:
 networks:
   traefik:
     external: true
-
+  monitoring:
+    external: true
+    
 configs:
   prometheus_config.v1:
     file: ./configs/prometheus/prometheus.yml
