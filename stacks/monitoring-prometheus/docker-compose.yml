@@ -97,9 +97,6 @@ services:
     networks:
       - traefik
       - monitoring
-    configs:
-      - source: pushgateway_htpasswd
-        target: /etc/htpasswd
     deploy:
       labels:
         - traefik.port=9091
@@ -107,8 +104,8 @@ services:
         - traefik.frontend.rule=Host:pushgateway.${DOMAIN:-localhost}
         - traefik.docker.network=traefik
         # default: admin/admin
-        # generate with htpasswd -c configs/pushgateway/htpasswd username
-        - traefik.frontend.auth.basic.usersFile=/etc/htpasswd
+        # generate with echo $(htpasswd -nbB <USER> "<PASS>") | sed -e s/\\$/\\$\\$/g
+        - traefik.frontend.auth.basic.users=admin:$$2y$$05$$FHI8VT5WM9IN9uzZ6U9N1OdYP0y4ANuoZfs0xxp0BS6c3Un0OL6QG
       resources:
         limits:
           memory: 64M
@@ -148,8 +145,6 @@ configs:
     file: ./configs/prometheus/prometheus.yml
   prometheus_rules.v1:
     file: ./configs/prometheus/alert.rules
-  pushgateway_htpasswd:
-    file: ./configs/pushgateway/htpasswd
     
 volumes:
   vol_prometheus_data:
