@@ -1,35 +1,31 @@
 global:
-  scrape_interval:     15s # By default, scrape targets every 15 seconds.
-  evaluation_interval: 15s # By default, scrape targets every 15 seconds.
-
-  # Attach these labels to any time series or alerts when communicating with
-  # external systems (federation, remote storage, Alertmanager).
+  scrape_interval:     15s
+  evaluation_interval: 15s
   external_labels:
       monitor: 'pistack-monitor'
 
 rule_files:
   - 'alert.rules'
 
-
 scrape_configs:
-  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: 'prometheus'
-    # Override the global default and scrape targets from this job every 5 seconds.
     scrape_interval: 15s
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
     static_configs:
       - targets: ['prometheus:9090']
 
+#  - job_name: 'ext-node'
+#    scrape_interval: 15s
+#    static_configs:
+#      - targets: ['192.168.0.2:9100']
+
   - job_name: 'node'
-    scrape_interval: 10s
-    #static_configs:
-    #  - targets: ['192.168.1.4:9100']
+    scrape_interval: 15s
     dns_sd_configs:
       - names:
         - 'tasks.node-exporter'
         type: 'A'
         port: 9100
+
   - job_name: 'cadvisor'
     scrape_interval: 15s
     dns_sd_configs:
@@ -37,16 +33,18 @@ scrape_configs:
       - 'tasks.cadvisor'
       type: 'A'
       port: 8080
+
   - job_name: 'traefik-exporter'
     dns_sd_configs:
     - names:
       - 'tasks.traefik'
       type: 'A'
       port: 8080
-  - job_name: 'arm-exporter'
-    scrape_interval: 10s
+
+  - job_name: 'pushgateway'
+    scrape_interval: 15s
     dns_sd_configs:
-      - names:
-        - 'arm_exporter'
-        type: 'A'
-        port: 9243
+    - names:
+      - 'tasks.pushgateway'
+      type: 'A'
+      port: 9091
