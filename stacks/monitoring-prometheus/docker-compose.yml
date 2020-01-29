@@ -92,6 +92,30 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  grafana:
+    image: grafana/grafana:6.6.0
+    user: root
+    volumes:
+      - vol_grafana_data:/var/lib/grafana
+    environment:
+      - GF_SERVER_ROOT_URL=https://grafana.${DOMAIN:-localhost}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel,cloudflare-app,camptocamp-prometheus-alertmanager-datasource,vonage-status-panel
+      - PROMETHEUS_ENDPOINT=http://prometheus:9090
+    networks:
+      - monitoring
+      - traefik
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+      labels:
+        - traefik.frontend.rule=Host:grafana.${DOMAIN:-localhost}
+        - traefik.port=3000
+        - traefik.backend=grafana
+        - traefik.docker.network=traefik
+
 networks:
   traefik:
     external: true
@@ -111,3 +135,9 @@ volumes:
       type: nfs
       o: addr=${NFS_SERVER_IP:-localhost},nolock,soft,rw
       device: ":/opt/nfs/volumes/prometheus"
+  vol_grafana_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER_IP:-localhost},nolock,soft,rw
+      device: ":/opt/nfs/volumes/grafana"
