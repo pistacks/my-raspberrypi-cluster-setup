@@ -1,0 +1,54 @@
+version: "3.7"
+
+services:
+  loki:
+    image: pistacks/loki:latest
+    ports:
+      - 3100:3100
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+      labels:
+        - traefik.port=3100
+        - traefik.backend=loki
+        - traefik.frontend.rule=Host:loki.${DOMAIN:-localhost}
+        - traefik.docker.network=traefik
+    networks:
+      - traefik
+      - monitoring
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  promtail:
+    image: pistacks/promtail:latest
+    configs:
+      - source: promtail_1_config.v1
+        target: /etc/promtail/promtail.yml
+    volumes:
+      - /var/log:/var/log
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - monitoring
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  traefik:
+    external: true
+  monitoring:
+    external: true
+
+configs:
+  promtail_1_config.v1:
+    file: ./configs/promtail/promtail_1.yml
