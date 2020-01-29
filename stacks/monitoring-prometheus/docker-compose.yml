@@ -106,6 +106,8 @@ services:
         - traefik.backend=pushgateway
         - traefik.frontend.rule=Host:pushgateway.${DOMAIN:-localhost}
         - traefik.docker.network=traefik
+        # default: admin/admin
+        # generate with htpasswd -c configs/pushgateway/htpasswd username
         - traefik.frontend.auth.basic.usersFile=/etc/htpasswd
       resources:
         limits:
