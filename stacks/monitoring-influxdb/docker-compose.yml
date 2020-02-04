@@ -1,0 +1,126 @@
+version: '3.7'
+services:
+  telegraf:
+    image: arm32v7/telegraf:1.8.0
+    hostname: "{{.Node.Hostname}}"
+    networks:
+      - monitoring
+      - traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/hostname:/etc/nodename
+      - vol_telegraf_data:/opt
+    configs:
+      - source: telegraf_config.v6
+        target: /etc/telegraf/telegraf.conf
+    deploy:
+      restart_policy:
+        condition: on-failure
+      mode: global
+
+  influxdb:
+    image: arm32v7/influxdb:1.7.6
+    ports:
+      - 8086:8086
+    networks:
+      - traefik
+      - monitoring
+    volumes:
+      - vol_influxdb_data:/var/lib/influxdb
+    deploy:
+      labels:
+        - traefik.port=8082
+        - traefik.backend=influxdb
+        - traefik.frontend.rule=Host:influxdb.${DOMAIN:-localhost}
+        - traefik.docker.network=traefik
+      placement:
+        constraints: [node.role == worker]
+
+  chronograf:
+    image: arm32v7/chronograf:1.7.12
+    networks:
+      - traefik
+      - monitoring
+    volumes:
+      - vol_chronograf_data:/var/lib/chronograf
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - KAPACITOR_URL=http://kapacitor:9092
+    deploy:
+      labels:
+        - traefik.port=8888
+        - traefik.backend=chronograf
+        - traefik.frontend.rule=Host:chronograf.${DOMAIN:-localhost}
+        - traefik.docker.network=traefik
+      placement:
+        constraints: [node.role == worker]
+
+  kapacitor:
+    image: arm32v7/kapacitor:1.5.3
+    networks:
+      - traefik
+      - monitoring
+    configs:
+      - source: kapacitor_config.v1
+        target: /etc/kapacitor/kapacitor.conf
+    volumes:
+      - vol_kapacitor_data:/var/lib/kapacitor
+    environment:
+      - KAPACITOR_HOSTNAME=kapacitor
+      - KAPACITOR_LOGGING_LEVEL=INFO
+      - KAPACITOR_REPORTING_ENABLED=false
+      - KAPACITOR_INFLUXDB_0_URLS_0=http://influxdb:8086
+    deploy:
+      labels:
+        - traefik.port=9092
+        - traefik.backend=kapacitor
+        - traefik.frontend.rule=Host:kapacitor.${DOMAIN:-localhost}
+        - traefik.docker.network=traefik
+      placement:
+        constraints: [node.role == worker]
+
+  fluent-influx:
+    image: pistacks/fluentd-influxdb:alpha-v1
+    ports:
+      - 24224:24224
+    user: root
+    networks:
+      - monitoring
+
+networks:
+  traefik:
+    external: true
+  monitoring:
+    external: true
+
+volumes:
+  vol_influxdb_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER_IP:-localhost},nolock,soft,rw
+      device: ":/opt/nfs/volumes/influxdb"
+  vol_kapacitor_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER_IP:-localhost},nolock,soft,rw
+      device: ":/opt/nfs/volumes/kapacitor"
+  vol_chronograf_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER_IP:-localhost},nolock,soft,rw
+      device: ":/opt/nfs/volumes/chronograf"
+  vol_telegraf_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER_IP:-localhost},nolock,soft,rw
+      device: ":/opt/nfs/volumes/telegraf"
+
+configs:
+  kapacitor_config.v1:
+    file: ./kapacitor/configs/kapacitor.conf
+  telegraf_config.v1:
+    file: ./telegraf/configs/telegraf.conf
