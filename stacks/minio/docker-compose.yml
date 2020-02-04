@@ -1,0 +1,35 @@
+version: '3.7'
+
+services:
+  minio:
+    image: pistacks/minio:2020.02.02
+    environment:
+      - MINIO_ACCESS_KEY=superkey
+      - MINIO_SECRET_KEY=supersecret
+      - META_FIELDS=service.name={{.Service.Name}},task.id={{.Task.ID}},node.name={{.Node.Hostname}}
+    volumes:
+      - vol_minio_data:/data
+    networks:
+      - traefik
+    deploy:
+      labels:
+        - traefik.frontend.rule=Host:minio.${DOMAIN:-localhost}
+        - traefik.port=9000
+        - traefik.backend=minio
+        - traefik.docker.network=traefik
+      resources:
+        limits:
+          memory: 512M
+    command: server /data
+
+volumes:
+  vol_minio_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER_IP:-localhost},nolock,soft,rw
+      device: ":/opt/nfs/volumes/minio"
+
+networks:
+  traefik:
+    external: true
