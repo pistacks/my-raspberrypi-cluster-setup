@@ -1,0 +1,12 @@
+version: "3.4"
+services:
+  ddns:
+    image: oznu/cloudflare-ddns:armhf
+    environment:
+      - EMAIL=${CLOUDFLARE_EMAIL_ADDRESS}
+      - API_KEY=${CLOUDFLARE_API_KEY}
+      - ZONE=${CLOUDFLARE_DNS_ZONE}
+      - SUBDOMAIN=${CLOUDFLARE_DNS_SUBDOMAIN}
+      - PROXIED=false
+      - RRTYPE=A
+      - DELETE_ON_STOP=false
