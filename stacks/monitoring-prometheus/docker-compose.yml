@@ -136,6 +136,17 @@ services:
         - traefik.backend=grafana
         - traefik.docker.network=traefik
 
+  arm-exporter:
+    image: pistacks/rpi-temp-exporter:0.6.0
+    hostname: "{{.Node.Hostname}}"
+    networks:
+      - monitoring
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 32M
+
 networks:
   traefik:
     external: true
