@@ -48,3 +48,11 @@ scrape_configs:
       - 'tasks.pushgateway'
       type: 'A'
       port: 9091
+
+  - job_name: 'arm-exporter'
+    scrape_interval: 15s
+    dns_sd_configs:
+      - names:
+        - 'tasks.arm-exporter'
+        type: 'A'
+        port: 9243
