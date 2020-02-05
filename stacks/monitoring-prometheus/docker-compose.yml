@@ -3,6 +3,7 @@ version: "3.7"
 services:
   cadvisor:
     image: pistacks/cadvisor:0.34.0
+    hostname: "{{.Node.Hostname}}"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -32,6 +33,7 @@ services:
 
   node-exporter:
     image: pistacks/node-exporter:0.18.1
+    hostname: "{{.Node.Hostname}}"
     environment:
       - NODE_ID={{.Node.ID}}
     volumes:
