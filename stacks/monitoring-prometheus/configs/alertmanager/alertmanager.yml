@@ -1,0 +1,64 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.sendgrid.net:587'
+  smtp_from: 'AlertManager <mailer@domain.com>'
+  smtp_require_tls: true
+  smtp_hello: 'alertmanager'
+  smtp_auth_username: 'x'
+  smtp_auth_password: 'x'
+  slack_api_url: 'https://hooks.slack.com/services/x/x/x'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'alert-to-slack'
+
+receivers:
+- name: 'alert-to-slack'
+  slack_configs:
+    - send_resolved: true
+      title_link: 'http://alertmanager.domain.com/#/alerts'
+      title: "{{ range .Alerts }}{{ .Annotations.title }}{{ end }}"
+      channel: '#system_events'
+      text: "Alert Channel:  {{ range .Alerts }}{{ .Labels.alert_channel }}{{ end }}\nRouted to Team: {{ range .Alerts }}{{ .Labels.team }}{{ end }} \nDescription: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}\nSummary: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}"
+      username: 'AlertManager'
+      icon_emoji: ':prometheus:'
+
+- name: 'alert-to-email'
+  email_configs:
+    - send_resolved: true
+      to: 'your.email@domain.com'
+
+- name: 'webhook-example'
+  webhook_configs:
+    - send_resolved: false
+      url: 'http://webhookurl.domain.com'
+  slack_configs:
+    - send_resolved: true
+      channel: '#system_events
+      username: 'Alertmanager'
+      title: "{{ range .Alerts }}{{ .Annotations.title }}{{ end }}"
+      text: "Alert Channel:  {{ range .Alerts }}{{ .Labels.alert_channel }}{{ end }}\nRouted to Team: {{ range .Alerts }}{{ .Labels.team }}{{ end }} \nDescription: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}\nSummary: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}"
+
+- name: opsgenie
+  slack_configs:
+    - send_resolved: true
+      channel: '#system_events'
+      username: 'Alertmanager'
+      title: "{{ range .Alerts }}{{ .Annotations.title }}{{ end }}"
+      text: "Alert Channel:  {{ range .Alerts }}{{ .Labels.alert_channel }}{{ end }}\nRouted to Team: {{ range .Alerts }}{{ .Labels.team }}{{ end }} \nDescription: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}\nSummary: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}"
+  opsgenie_configs:
+    - send_resolved: true
+      api_key: 'x'
+      teams: '{{ range .Alerts }}{{ .Labels.team }}{{ end }}'
+      message: "{{ range .Alerts }}{{ .Annotations.title }}\n{{ end }}"
+      description: "Alert Channel:  {{ range .Alerts }}{{ .Labels.alert_channel }}{{ end }}\nRouted to Team: {{ range .Alerts }}{{ .Labels.team }}{{ end }} \nDescription: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}"
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']
