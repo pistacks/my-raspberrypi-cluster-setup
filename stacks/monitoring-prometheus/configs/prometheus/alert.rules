@@ -9,8 +9,9 @@ groups:
     labels:
       severity: "critical"
     annotations:
+      title: "Service is down on {{ $labels.nodename }}"
       summary: "Instance {{ $labels.instance }} down"
-      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
+      description: "{{ $labels.nodename }} of job {{ $labels.job }} has been down for more than 2 minutes."
 
   - alert: high_load
     expr: node_load1 * on(instance) group_left(nodename) (node_uname_info) > 4
@@ -30,7 +31,8 @@ groups:
     labels:
       severity: page
     annotations:
-      summary: "Instance {{ $labels.nodename }} has low memory"
+      title: "Low Memory on {{ $labels.nodename }}"
+      summary: "Instance {{ $labels.nodename }} has low memory: {{ $value }}"
       description: "{{ $labels.nodename }} of job {{ $labels.job }} has low memory."
 
   - alert: disk_usage
@@ -41,6 +43,7 @@ groups:
     labels:
       severity: warning
     annotations:
+      title: "Disk usage is low on {{ $labels.nodename }}"
       description: Swarm node {{ $labels.node_name }} disk usage is at {{ humanize $value}}%.
       summary: Disk alert for Swarm node '{{ $labels.node_name }}'
 
@@ -50,6 +53,7 @@ groups:
       * 100 > 80
     for: 1m
     annotations:
+      title: "Task CPU Usage is High on {{ $labels.nodename }}"
       description: '{{ $labels.container_label_com_docker_swarm_task_name }} on ''{{
         $labels.container_label_com_docker_swarm_node_id }}'' CPU usage is at {{ humanize
         $value}}%.'
@@ -61,6 +65,7 @@ groups:
       BY (container_label_com_docker_swarm_task_name, container_label_com_docker_swarm_node_id) > 1e+09
     for: 1m
     annotations:
+      title: "Task Memory Usage is High on {{ $labels.nodename }}"
       description: '{{ $labels.container_label_com_docker_swarm_task_name }} on ''{{
         $labels.container_label_com_docker_swarm_node_id }}'' memory usage is {{ humanize
         $value}}.'
