@@ -1,5 +1,5 @@
 groups:
-- name: example
+- name: alert.rules
   rules:
 
   # Alert for any instance that is unreachable for >5 minutes.
@@ -7,16 +7,62 @@ groups:
     expr: up == 0
     for: 2m
     labels:
-      severity: page
+      severity: "critical"
     annotations:
       summary: "Instance {{ $labels.instance }} down"
       description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
 
   - alert: high_load
-    expr: node_load1 > 0.5
+    expr: node_load1 * on(instance) group_left(nodename) (node_uname_info) > 4
+    for: 2m
+    labels:
+      alert_channel: "slack"
+      team: "devops"
+      severity: "critical"
+    annotations:
+      title: "High Load Average on {{ $labels.nodename }}"
+      summary: "Instance {{ $labels.nodename }} under high load"
+      description: "{{ $labels.nodename }} of job {{ $labels.job }} is under high load."
+
+  - alert: low_memory
+    expr: node_memory_MemAvailable_bytes/1024/1024 * on(instance) group_left(nodename) (node_uname_info) < 256
     for: 2m
     labels:
       severity: page
     annotations:
-      summary: "Instance {{ $labels.instance }} under high load"
-      description: "{{ $labels.instance }} of job {{ $labels.job }} is under high load."
+      summary: "Instance {{ $labels.nodename }} has low memory"
+      description: "{{ $labels.nodename }} of job {{ $labels.job }} has low memory."
+
+  - alert: disk_usage
+    expr: ((node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_free_bytes{mountpoint="/"})
+      * 100 / node_filesystem_size_bytes{mountpoint="/"}) * ON(instance) GROUP_LEFT(nodename)
+      node_meta > 85
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      description: Swarm node {{ $labels.node_name }} disk usage is at {{ humanize $value}}%.
+      summary: Disk alert for Swarm node '{{ $labels.node_name }}'
+
+  - alert: task_high_cpu_usage_80
+    expr: sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_task_name=~".+"}[5m]))
+      BY (container_label_com_docker_swarm_task_name, container_label_com_docker_swarm_node_id)
+      * 100 > 80
+    for: 1m
+    annotations:
+      description: '{{ $labels.container_label_com_docker_swarm_task_name }} on ''{{
+        $labels.container_label_com_docker_swarm_node_id }}'' CPU usage is at {{ humanize
+        $value}}%.'
+      summary: CPU alert for Swarm task '{{ $labels.container_label_com_docker_swarm_task_name
+        }}' on '{{ $labels.container_label_com_docker_swarm_node_id }}'
+
+  - alert: task_high_memory_usage_1g
+    expr: sum(container_memory_rss{container_label_com_docker_swarm_task_name=~".+"})
+      BY (container_label_com_docker_swarm_task_name, container_label_com_docker_swarm_node_id) > 1e+09
+    for: 1m
+    annotations:
+      description: '{{ $labels.container_label_com_docker_swarm_task_name }} on ''{{
+        $labels.container_label_com_docker_swarm_node_id }}'' memory usage is {{ humanize
+        $value}}.'
+      summary: Memory alert for Swarm task '{{ $labels.container_label_com_docker_swarm_task_name
+        }}' on '{{ $labels.container_label_com_docker_swarm_node_id }}'
